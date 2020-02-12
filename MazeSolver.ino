@@ -96,11 +96,13 @@ void loop()
   }  
 }
 
+// Write values stored in motorDir to motorPins appropriately to moe robot as needed
 void motorWrite()
 {
   Serial.println(" motor functionality not implemented");
 }
 
+// Get readings from an ultrasound sensor and store in usDist array
 void usRead(int index)
 {
   if(index >= 0 && index <= 2)
