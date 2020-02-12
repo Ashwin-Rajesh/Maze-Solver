@@ -1,4 +1,3 @@
-
 /*
 Indices used to refer in arrays
 --------------------------------------
@@ -14,17 +13,25 @@ General Motor index (in arrays)
  * Applied to variables motorPins, motorDir
 --------------------------------------
 motorPins index :
- (0,0) - Left 1
- (0,1) - Left 2
- (1,0) - Right 1
- (1,1) - Right 2
+ {{Left 1, Left 2}, {Right 1, Right 2}}
 --------------------------------------
 motorDir index :
  0 - Stop
  1 - Forward
  2 - Backward
- 3 - Rotate cw  (clockwise)
- 4 - Rotate ccw (counter-clockwise)
+--------------------------------------
+roboDir index:
+ 0 - Stop 
+ 1 - Forward
+ 2 - Backward
+ 3 - Rotate CW (clockwise)
+ 4 - Rotate CCW (counterclockwise)
+--------------------------------------
+Motor output index(output to pins in format {pin1,pin2}, refer motorPin index)
+ {0,0} - Stop
+ {0,1} - Forward
+ {1,0} - Backward
+--------------------------------------
 */
 
 // Pin Numbers
@@ -36,11 +43,20 @@ const int echoPins[]      = {1,1,1};        // Echo pins of ultrasound sensors
 // Callibration variables
 const float usMaxDist[3]  = {10,10,10};     // Maximum distance till which ultrasound scans for obstacles
 float usTimeOut[3];                         // Time in milliseconds after which ultrasound sensors will timeOut and ignore echoes
-const float distFactor    = 0.034/2;        // Factor by which echo time has to be multiplied by to get distance to obstacle 
+const float distFactor    = 0.034/2;        // Factor by which echo time has to be multiplied by to get distance to obstacle
+int frontOpenDist         = 10;             // Distance above value returned, at which algorithm recognizes opening in front
+int leftOpenDist          = 10;             // Same as above, for opening in left
+int rightOpenDist         = 10;             // Same as above, for opening in right
+
+// Debug control variables 
+bool usDebug              = false;          // Display ultrasound output values through serial monitor?
+bool motorDebug           = false;          // Display motor output values through serial monitor?
+bool algoDebug             = true;          // Display change in direction and decisions made by algorithm
 
 // Global variables used as buffer
 int motorDir[2];                            // Stores value denoting diection / action to be executed by motors - Refer index at beginning for values and corresponding actions
-int usDist[3];                              //Stores distance from obstacle last detected by ultraound sensors
+int usDist[3];                              // Stores distance from obstacle last detected by ultraound sensors
+int roboDir;                                // Stores direction in which robot should move. Refer index
 
 void setup() 
 {
@@ -83,23 +99,123 @@ void setup()
 
 void loop() 
 {
+  // If letter 't' is received via Serial, the debug modes change in the order
+  // |---------------------|
+  // | usDebug | motorDebug|
+  // |---------------------|
+  // | false   | false     | (initial state)
+  // | true    | true      |
+  // | false   | true      |
+  // | true    | false     | (then cycles)
+  // ----------------------|
+  while(Serial.available())
+  {
+    if(Serial.read() == 't')
+    {
+      usDebug = !usDebug;
+      if(usDebug)
+      {
+        motorDebug = ! motorDebug;
+      }
+    }
+    Serial.println(usDebug);
+    Serial.println(motorDebug);    
+  }
+  
   delay(100);
   for(int i = 0; i < 3; i++)
   {
     usRead(i);
-    /*
-    Serial.print(" Ultrasound sensor ");
-    Serial.print(i);
-    Serial.print(" : ");
-    Serial.println(usDist[i]);
-    */
-  }  
+    if(usDebug)
+    {
+      Serial.print(" Ultrasound sensor ");
+      Serial.print(i);
+      Serial.print(" : ");
+      Serial.println(usDist[i]);
+    }   
+  }
+
+  if(usDist[0] >= leftOpenDist)             // Check for opening in left
+  {
+    // Go left
+  }
+  else if(usDist[1] <= frontOpenDist)       // Check for obstacle in front
+  {
+    if(usDist[2] >= rightOpenDist)
+    {
+      // Go right
+    }
+    else
+    {
+      // Go back, turn 180 degrees
+    }
+  }
+}
+
+// Interpret values stored in roboDir and assign values to motorDir, outputs are not given to motors.
+void roboWrite()
+{
+  if(roboDir == 0)
+  {
+    motorDir[0] = 0;
+    motorDir[1] = 0;
+  }
+  else if(roboDir == 1)
+  {
+    motorDir[0] = 1;
+    motorDir[1] = 1;
+  }
+  else if(roboDir == 2)
+  {
+    motorDir[0] = 2;
+    motorDir[1] = 2;
+  }
+  else if(roboDir == 3)
+  {
+    motorDir[0] = 1;
+    motorDir[1] = 2;
+  }
+  else if(roboDir == 4)
+  {
+    motorDir[0] = 2;
+    motorDir[1] = 1;
+  }
 }
 
 // Write values stored in motorDir to motorPins appropriately to moe robot as needed
 void motorWrite()
 {
-  Serial.println(" motor functionality not implemented");
+  for(int i = 0; i < 2; i++)
+  {
+    if(motorDebug)
+    {
+      Serial.println();
+      Serial.print(" Motor no ");
+      Serial.print(i);
+      Serial.print(" : ");
+    }
+    if(motorDir[i] == 0)
+    {
+      if(motorDebug)  Serial.println("Stop");
+      digitalWrite(motorPins[i][0],LOW);
+      digitalWrite(motorPins[i][1],LOW);
+    }
+    else if(motorDir[i] == 1)
+    {
+      if(motorDebug)  Serial.println("Forward");
+      digitalWrite(motorPins[i][0],LOW);
+      digitalWrite(motorPins[i][1],HIGH);
+    }
+    else if(motorDir[i] == 2)
+    {
+      if(motorDebug)  Serial.println("Backward");
+      digitalWrite(motorPins[i][0],HIGH);
+      digitalWrite(motorPins[i][1],LOW);
+    }
+    else
+      Serial.println(" Invalid entry");
+  }
+  Serial.println();
 }
 
 // Get readings from an ultrasound sensor and store in usDist array
