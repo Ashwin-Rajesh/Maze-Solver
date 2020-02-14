@@ -35,17 +35,17 @@ Motor output index(output to pins in format {pin1,pin2}, refer motorPin index)
 */
 
 // Pin Numbers
-const int motorPins[][2]  = {{1,1},{1,1}};  // Pins connected to motor driver - Refer index at beginning
-const int trigPins[]      = {17,2,4};       // Trigger pins of ultrasound sensors
-const int echoPins[]      = {5,0,16};       // Echo pins of ultrasound sensors
+const int motorPins[][2]  = {{2,3},{4,6}};  // Pins connected to motor driver - Refer index at beginning
+const int trigPins[]      = {7,9,11};       // Trigger pins of ultrasound sensors
+const int echoPins[]      = {8,10,12};      // Echo pins of ultrasound sensors
 
 // Callibration variables
 float usMaxDist[3]        = {30,30,30};     // Maximum distance till which ultrasound scans for obstacles
 float usTimeOut[3];                         // Time in milliseconds after which ultrasound sensors will timeOut and ignore echoes
 const float distFactor    = 0.034/2;        // Factor by which echo time has to be multiplied by to get distance to obstacle
 float openDist[3]         = {25,25,25};     // Distance above value returned, at which algorithm recognizes opening
-float roboStepFront       = 100;            // Milliseconds for which robot moves forward to count it as a step  
-float roboStep90          = 100;            // Milliseconds for which robot should rotate to make orientation 90 degrees
+float roboStepFront       = 200;            // Milliseconds for which robot moves forward to count it as a step  
+float roboStep90          = 500;            // Milliseconds for which robot should rotate to make orientation 90 degrees
 
 // Debug control variables 
 bool usDebug              = false;          // Display ultrasound output values through serial monitor?
@@ -62,7 +62,7 @@ void setup()
   // Setting pinModes
   pinMode(motorPins[0][0],OUTPUT);
   pinMode(motorPins[0][1],OUTPUT);
-  pinMode(motorPins[1][0],OUTPUT);
+   pinMode(motorPins[1][0],OUTPUT);
   pinMode(motorPins[1][1],OUTPUT);
 
   pinMode(trigPins[0],OUTPUT);
@@ -145,11 +145,11 @@ void loop()
     
     frontStep(roboStepFront);
     
-    if(usGet(0) <= openDist[0])
-      backStep(roboStepFront / 2);
-
     leftStep(roboStep90);
 
+    while(usGet(1) <= openDist[1])
+      leftStep(roboStep90/10);
+    
     while(usGet(0) >= openDist[0])
       frontStep(roboStepFront);
   }
@@ -161,12 +161,11 @@ void loop()
     
       frontStep(roboStepFront);
     
-      if(usGet(0) <= openDist[0])
-        backStep(roboStepFront / 2);
-
       rightStep(roboStep90);
+      while(usGet(1) <= openDist[1])
+        rightStep(roboStep90/10);
 
-      while(usGet(0) >= openDist[0])
+      while(usGet(2) >= openDist[0])
         frontStep(roboStepFront);
     }
     else
@@ -177,7 +176,7 @@ void loop()
   }
   else
   {
-    if(algoDebug)     Serial.println("decision : left"); 
+    if(algoDebug)     Serial.println("decision : front"); 
     frontStep(roboStepFront);
   }
 }
@@ -202,11 +201,6 @@ void leftStep(int dly)
 {
   left();
   delay(dly);
-  while(usGet(1) <= openDist[1])
-  {
-    left();
-    delay(dly/10);
-  }
   stopStep();
   if(algoDebug)     Serial.println("  -turning left");
 }
@@ -215,11 +209,6 @@ void rightStep(int dly)
 {
   left();
   delay(dly);
-  while(usGet(1) <= openDist[1])
-  {
-    right();
-    delay(dly/10);
-  }
   stopStep();
   if(algoDebug)     Serial.println("  -turning right");
 }
