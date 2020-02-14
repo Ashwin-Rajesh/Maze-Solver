@@ -39,12 +39,11 @@ const int motorPins[][2]  = {{1,1},{1,1}};  // Pins connected to motor driver - 
 const int trigPins[]      = {17,2,4};       // Trigger pins of ultrasound sensors
 const int echoPins[]      = {5,0,16};       // Echo pins of ultrasound sensors
 
-
 // Callibration variables
 float usMaxDist[3]        = {30,30,30};     // Maximum distance till which ultrasound scans for obstacles
 float usTimeOut[3];                         // Time in milliseconds after which ultrasound sensors will timeOut and ignore echoes
 const float distFactor    = 0.034/2;        // Factor by which echo time has to be multiplied by to get distance to obstacle
-float openDist[3]         = {15,15,15};     // Distance above value returned, at which algorithm recognizes opening
+float openDist[3]         = {25,25,25};     // Distance above value returned, at which algorithm recognizes opening
 float roboStepFront       = 100;            // Milliseconds for which robot moves forward to count it as a step  
 float roboStep90          = 100;            // Milliseconds for which robot should rotate to make orientation 90 degrees
 
@@ -139,7 +138,7 @@ void loop()
     }
     Serial.println();
   }
-  
+ 
   if(usDist[0] >= openDist[0])             // Check for opening in left
   {
     if(algoDebug)     Serial.println("decision : left"); 
@@ -179,7 +178,6 @@ void loop()
   else
   {
     if(algoDebug)     Serial.println("decision : left"); 
-    
     frontStep(roboStepFront);
   }
 }
@@ -204,14 +202,24 @@ void leftStep(int dly)
 {
   left();
   delay(dly);
+  while(usGet(1) <= openDist[1])
+  {
+    left();
+    delay(dly/10);
+  }
   stopStep();
   if(algoDebug)     Serial.println("  -turning left");
 }
 
 void rightStep(int dly)
 {
-  right();
+  left();
   delay(dly);
+  while(usGet(1) <= openDist[1])
+  {
+    right();
+    delay(dly/10);
+  }
   stopStep();
   if(algoDebug)     Serial.println("  -turning right");
 }
